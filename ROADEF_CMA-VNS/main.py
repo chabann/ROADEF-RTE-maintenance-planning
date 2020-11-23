@@ -26,8 +26,8 @@ START_STR = 'start'
 QUANTILE_STR = "Quantile"
 ALPHA_STR = "Alpha"
 
-
-instance = read_json('A_09.json')
+instance_name = 'A_09'
+instance = read_json(instance_name + '.json')
 Interventions = instance[INTERVENTIONS_STR]
 
 dim = len(Interventions)
@@ -72,3 +72,9 @@ plt.plot(time_tot, value_tot, 'b-')
 plt.grid()
 
 plt.show()
+
+f = open('output/' + instance_name + ".txt", 'w')
+
+f.writelines(intervention_names[iter] + ' ' + str(int(i)) + '\n' for iter, i in enumerate(best_solution))
+f.close()
+

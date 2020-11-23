@@ -81,7 +81,7 @@ def search(neighborhoods, max_no_improv, max_no_improv_ls, instance, interventio
 
             candidate["cost"], candidate["penalty"], candidate["penalty_tuple"] = main_checker(instance, candidate["vector"])
             candidate = local_search(candidate, max_no_improv_ls, neigh, instance)
-            if not (iter_ % 10):
+            if not (iter_ % 50):
                 print("iter:", iter_ + 1, "neigh:", neigh, "best:", best["cost"], "penalty:", best["penalty_tuple"])
             iter_ += 1
 

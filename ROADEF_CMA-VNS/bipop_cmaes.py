@@ -74,11 +74,12 @@ def main_bipop(instance):
                 current_value.append(best_value)
                 current_penalty.append(best_penalty)
 
-            if not (iteration % 1000):
+            if not (iteration % 5000):
                 print('iteration:', iteration, 'value:', best_value, 'penalty:', best_penalty)
 
         optimizer.tell(solutions)
-
+        if iteration >= 80000:
+            n_restarts = max_n_restart
         if optimizer.should_stop():
             seed += 1
             n_eval = optimizer.population_size * optimizer.generation
