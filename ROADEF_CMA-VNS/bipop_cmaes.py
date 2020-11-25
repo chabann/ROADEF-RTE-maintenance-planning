@@ -21,7 +21,7 @@ QUANTILE_STR = "Quantile"
 ALPHA_STR = "Alpha"
 
 
-def main_bipop(instance):
+def main_bipop(instance, initial):
     Interventions = instance[INTERVENTIONS_STR]
     dim = len(Interventions)
     Deltas = []
@@ -33,8 +33,7 @@ def main_bipop(instance):
     rng = np.random.RandomState(0)
 
     bounds = np.array([[1, int(Interventions[intervention_names[i]][TMAX_STR])] for i in range(dim)])
-    mean = np.array([random.randint(1, int(Interventions[intervention_names[i]][TMAX_STR]))
-                     for i in range(dim)], dtype='float64')
+    mean = np.array(initial, dtype='float64')
     sigma = dim * 2 / 5  # 1/5 of the domain width
     optimizer = CMA(mean=mean, sigma=sigma, bounds=bounds, seed=0)
 
@@ -111,6 +110,6 @@ def main_bipop(instance):
             print("Restart CMA-ES with popsize={} ({})".format(popsize, poptype))
 
     print('Done, Best_value:', best_value, 'Best_penalty:', best_penalty)
-    print('Best solution:', best_solution)
+    # print('Best solution:', best_solution)
     time = [i for i in range(1, len(current_value) + 1)]
     return current_value, current_penalty, time, best_value, best_penalty, best_solution

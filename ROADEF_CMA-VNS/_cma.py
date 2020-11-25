@@ -25,7 +25,10 @@ class CMA:
         assert n_dim > 1, "The dimension of mean must be larger than 1"
 
         if population_size is None:
-            population_size = 4 + math.floor(2 * math.log(n_dim))  # (eq. 48)  # 3 *
+            if n_dim > 100:
+                population_size = 4 + math.floor(3 * math.log(n_dim))
+            else:
+                population_size = 4 + math.floor(math.log(n_dim))  # (eq. 48)  # 3 *
         assert population_size > 0, "popsize must be non-zero positive value."
 
         mu = population_size // 2

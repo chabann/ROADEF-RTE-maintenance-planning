@@ -106,11 +106,12 @@ def main_vns(instance, initial_vol):
     for i in range(dim):
         Deltas.append(max(Interventions[intervention_names[i]]['Delta']))
 
-    max_no_improv = 70  # 50
-    max_no_improv_ls = 90  # 70
-    neighborhoods = list(range(20))
+    max_no_improv = 120  # 50  # 70
+    max_no_improv_ls = 150  # 70  # 90
+    neighborhoods = list(range(30))
     best, plot_info = search(neighborhoods, max_no_improv, max_no_improv_ls, instance,
                              intervention_names, Interventions, dim, initial_vol)
-    print("Done. Best Solution:", best["cost"], best["vector"], best["penalty_tuple"])
+    # print("Done. Best Solution:", best["cost"], best["vector"], best["penalty_tuple"])
+    print("Done. Best Solution:", best["cost"], best["penalty_tuple"])
 
     return plot_info["time"], plot_info["function"], best["cost"], best["vector"], best["penalty_tuple"]
