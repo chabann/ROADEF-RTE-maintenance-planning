@@ -1,6 +1,7 @@
 import random
 from function_checker import main_checker
 import os
+import time
 
 # Global variables
 CUR_DIR = os.getcwd()
@@ -62,22 +63,28 @@ def large_step_size(iter_count, step_size, s_factor, l_factor, iter_mult):
 def take_steps(bounds, current, step_size, big_stepsize, instance):
     step, big_step = {}, {}
     step["vector"] = take_step(bounds, current["vector"], step_size)
-    step["cost"], step["penalty"], step["penalty_tuple"] = main_checker(instance, step["vector"])
+    step["cost"], step["penalty"], step["penalty_tuple"] = main_checker(instance, step["vector"], )
     big_step["vector"] = take_step(bounds, current["vector"], big_stepsize)
     big_step["cost"], big_step["penalty"], big_step["penalty_tuple"] = main_checker(instance, big_step["vector"])
     return step, big_step
 
 
-def search(max_iter, bounds, init_factor, s_factor, l_factor, iter_mult, max_no_impr, intervention_names, dim, instance, initial):
+def search(max_iter, bounds, init_factor, s_factor, l_factor, iter_mult, max_no_impr, intervention_names,
+           dim, instance, initial):
     Interventions = instance[INTERVENTIONS_STR]
     step_size = (bounds[0][1] - bounds[0][0]) * init_factor
     current, count = {}, 0
     current["vector"] = initial
     current["cost"], current["penalty"], current["penalty_tuple"] = main_checker(instance, current["vector"])
-
+    time = [1]
+    values = [current["cost"]]
     for i in range(max_iter):
         big_stepsize = large_step_size(i, step_size, s_factor, l_factor, iter_mult)
         step, big_step = take_steps(bounds, current, step_size, big_stepsize, instance)
+
+        if not (i % 20):
+            time.append(time[-1]+1)
+            values.append(current["cost"])
 
         if (step["cost"] <= current["cost"] or big_step["cost"] <= current["cost"]) & \
                 (step["penalty"] <= current["penalty"] or big_step["penalty"] <= current["penalty"]):
@@ -85,34 +92,25 @@ def search(max_iter, bounds, init_factor, s_factor, l_factor, iter_mult, max_no_
                 step_size, current = big_stepsize, big_step
             else:
                 current = step
-
             count = 0
         else:
             count += 1
-
             if count >= max_no_impr:
                 count, stepSize = 0, (step_size / s_factor)
-        #if not (i % 300):
-        #print("Iteration " + str(i) + ": best = " + str(current["cost"]) + "penalty:", + current["penalty"])
-
-    return current
+    return current, time, values
 
 
-def main_as(instance, initial):
+def main_as(instance, initial, time_limit, penalty_koef):
     Interventions = instance[INTERVENTIONS_STR]
 
     dim = len(Interventions)
     Time = instance[T_STR]
     Deltas = []
-
     intervention_names = list(Interventions.keys())
-
     for i in range(dim):
         Deltas.append(max(Interventions[intervention_names[i]]['Delta']))
 
     bounds = [[1, int(Interventions[intervention_names[i]][TMAX_STR])] for i in range(dim)]
-
-    # algorithm configuration
     max_iter = 4000
     init_factor = 0.1
     s_factor = Time/16
@@ -120,8 +118,7 @@ def main_as(instance, initial):
     iter_mult = 10
     max_no_impr = 30
 
-    # execute the algorithm
-    best = search(max_iter, bounds, init_factor, s_factor, l_factor, iter_mult, max_no_impr, intervention_names, dim,
-                  instance, initial)
-    print("Done. Best Solution: cost = " + str(best["cost"]) + " penalty:" + str(best["penalty"]) + ", v = " + str(best["vector"]))
-    return best["cost"], best["vector"], best["penalty"]
+    best, time, values = search(max_iter, bounds, init_factor, s_factor, l_factor, iter_mult,
+                                max_no_impr, intervention_names, dim, instance, initial, penalty_koef, time_limit)
+    print("Done AS. Best Solution:", best["cost"], "penalty:", best["penalty"])
+    return best["cost"], best["vector"], best["penalty"], time, values

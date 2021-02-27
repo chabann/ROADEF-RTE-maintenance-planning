@@ -22,13 +22,9 @@ QUANTILE_STR = "Quantile"
 ALPHA_STR = "Alpha"
 
 
-# Json reader
 def read_json(filename: str):
-    """Read a json file and return data as a dict object"""
-
-    print('Reading json file ' + filename + '...')
+    print('Reading json file ' + filename)
     f = open('data/'+filename, 'r')
     Instance = json.load(f)
     f.close()
-    # print('Done')
     return Instance

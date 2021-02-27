@@ -1,12 +1,8 @@
 from function_checker import main_checker
-
 import random
-import os
-import matplotlib.pyplot as plt
+import time
 
 # Global variables
-CUR_DIR = os.getcwd()
-PAR_DIR = os.path.dirname(CUR_DIR)
 RESOURCES_STR = 'Resources'
 SEASONS_STR = 'Seasons'
 INTERVENTIONS_STR = 'Interventions'
@@ -22,7 +18,6 @@ RISK_STR = 'risk'
 START_STR = 'start'
 QUANTILE_STR = "Quantile"
 ALPHA_STR = "Alpha"
-PENALTY_KOEF = 500
 
 
 def stochastic_two_opt(perm):
@@ -40,9 +35,8 @@ def stochastic_two_opt(perm):
     return perm
 
 
-def local_search(best, max_no_improv, neighborhood_size, instance):
+def local_search(best, max_no_improv, neighborhood_size, instance, penalty_koef):
     count = 0
-
     while count < max_no_improv:
         candidate = {}
         candidate["vector"] = [v for v in best["vector"]]
@@ -50,54 +44,57 @@ def local_search(best, max_no_improv, neighborhood_size, instance):
         for _ in range(neighborhood_size):
             stochastic_two_opt(candidate["vector"])
 
-        candidate["cost"], candidate["penalty"], candidate["penalty_tuple"] = main_checker(instance, candidate["vector"])
+        candidate["cost"], candidate["penalty"], candidate["penalty_tuple"] = \
+            main_checker(instance, candidate["vector"], penalty_koef)
 
         if (candidate["cost"] < best["cost"]) & (candidate["penalty"] <= best["penalty"]):
             count, best = 0, candidate
         else:
             count += 1
-
     return best
 
 
-def search(neighborhoods, max_no_improv, max_no_improv_ls, instance, intervention_names, Interventions, dim, ini_vector):
+def search(neighborhoods, max_no_improv, max_no_improv_ls, instance, ini_vector, time_limit, start_time, penalty_koef):
     best = {}
-    # best["vector"] = [random.randint(1, int(Interventions[intervention_names[i]][TMAX_STR])) for i in range(dim)]
     best["vector"] = ini_vector
-    best["cost"], best["penalty"], best["penalty_tuple"] = main_checker(instance, best["vector"])
+    best["cost"], best["penalty"], best["penalty_tuple"] = main_checker(instance, best["vector"], penalty_koef)
     iter_, count = 0, 0
     info = {}
     info["function"] = []
     info["penalty"] = []
     info["time"] = []
 
-    while count < max_no_improv:
+    while (time.time() - start_time) < time_limit:
         for neigh in neighborhoods:
+
+            if (time.time() - start_time) >= time_limit:
+                break
+
             candidate = {}
             candidate["vector"] = [v for v in best["vector"]]
 
             for _ in range(neigh):
                 stochastic_two_opt(candidate["vector"])
 
-            candidate["cost"], candidate["penalty"], candidate["penalty_tuple"] = main_checker(instance, candidate["vector"])
-            candidate = local_search(candidate, max_no_improv_ls, neigh, instance)
-            if not (iter_ % 50):
-                print("iter:", iter_ + 1, "neigh:", neigh, "best:", best["cost"], "penalty:", best["penalty_tuple"])
+            candidate["cost"], candidate["penalty"], candidate["penalty_tuple"] = \
+                main_checker(instance, candidate["vector"], penalty_koef)
+            candidate = local_search(candidate, max_no_improv_ls, neigh, instance, penalty_koef)
             iter_ += 1
 
             if (candidate["cost"] < best["cost"]) & (candidate["penalty"] <= best["penalty"]):
                 best, count = candidate, 0
-                print("New best, restarting neighborhood search")
                 break
             else:
                 count += 1
             info["function"].append(best["cost"])
             info["penalty"].append(best["penalty"])
             info["time"].append(iter_)
+
     return best, info
 
 
-def main_vns(instance, initial_vol):
+def main_vns(instance, initial_vol, time_limit, penalty_koef):
+    start_time = time.time()
     Interventions = instance[INTERVENTIONS_STR]
     dim = len(Interventions)
     Deltas = []
@@ -105,13 +102,15 @@ def main_vns(instance, initial_vol):
 
     for i in range(dim):
         Deltas.append(max(Interventions[intervention_names[i]]['Delta']))
+    numb_neigh = dim
 
-    max_no_improv = 120  # 50  # 70
-    max_no_improv_ls = 150  # 70  # 90
-    neighborhoods = list(range(30))
+    max_no_improv = 50
+    max_no_improv_ls = 70
+    neighborhoods = list(range(numb_neigh))
     best, plot_info = search(neighborhoods, max_no_improv, max_no_improv_ls, instance,
-                             intervention_names, Interventions, dim, initial_vol)
-    # print("Done. Best Solution:", best["cost"], best["vector"], best["penalty_tuple"])
-    print("Done. Best Solution:", best["cost"], best["penalty_tuple"])
+                             initial_vol, time_limit, start_time, penalty_koef)
 
-    return plot_info["time"], plot_info["function"], best["cost"], best["vector"], best["penalty_tuple"]
+    print("Done VNS. Best Solution:", best["cost"], "penalty:", best["penalty"])
+    print(time.time() - start_time, 'seconds for VNS')
+
+    return plot_info["time"], plot_info["function"], best["cost"], best["vector"], best["penalty"]

@@ -39,5 +39,5 @@ for i in range(dim):
     Deltas.append(max(Interventions[intervention_names[i]]['Delta']))
 
 initial = [random.randint(1, int(Interventions[intervention_names[i]][TMAX_STR])) for i in range(dim)]
-value_as, solution_as, penalty_as = main_as(instance)
+value_as, solution_as, penalty_as = main_as(instance, initial)
 

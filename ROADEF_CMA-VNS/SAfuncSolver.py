@@ -4,6 +4,7 @@ import random
 import os
 import math
 from function_checker import main_checker
+import time
 
 
 # Global variables
@@ -35,22 +36,23 @@ def calculateEnergy(x, dis):
     return energy + dis[x[n-1]][x[0]]
 
 
-def GenerateStateCandidate(x, t, delta):
-    d = len(x)
+def GenerateStateCandidate(x):
+    n = len(x)
     rnd.seed(1000)
-    leftbound = random.randint(0, d-1)
-    rightbound = random.randint(0, d-1)
-    if leftbound > rightbound:
-        leftbound, rightbound = rightbound, leftbound
-    for i in range(leftbound, rightbound):
-        x[i] = 0
-        while x[i] == 0:
-            alpha = random.random()
-            # alpha = (sign(alpha - 0.5)*t*((1 - 1/t)**(2*alpha - 1))*time).real
-            alpha = (sign(alpha - 0.5) * t * ((1 + d/t) ** (2 * alpha - 1) - 1)).real
-            if (alpha >= 0) & (alpha <= d-delta[i]):
-                x[i] = round(alpha)
-    return x
+    leftbound = random.randint(0, n)
+    rightbound = random.randint(0, n)
+
+    if leftbound < rightbound:
+        subx0 = x[0: leftbound]
+        subx = x[leftbound: rightbound]
+        subx1 = x[rightbound: n]
+    else:
+        subx0 = x[0: rightbound]
+        subx = x[rightbound: leftbound]
+        subx1 = x[leftbound: n]
+    subx = np.flip(subx)
+    x1 = np.hstack((subx0, subx, subx1))
+    return x1
 
 
 def GetTransitionProbability(E, t):
@@ -74,7 +76,8 @@ def GetStartState(d, delta):
     return x
 
 
-def sa_main(instance):
+def sa_main(instance, time_limit, penalty_koef):
+    start_time = time.time()
     Interventions = instance[INTERVENTIONS_STR]
     dim = len(Interventions)
     Deltas = []
@@ -83,25 +86,24 @@ def sa_main(instance):
     for i in range(dim):
         Deltas.append(max(Interventions[intervention_names[i]]['Delta']))
 
-    initialTemperature = 100000
-    endTemperature = 0.000001
-    iterMax = 15000
+    initialTemperature = 1000000
+    endTemperature = 0.0000001
+    # iterMax = 15000
 
-    state = GetStartState(dim, Deltas)  # задаём вектор начального состояния, как случайную перестановку работ
+    state = [random.randint(1, int(Interventions[intervention_names[i]][TMAX_STR])) for i in range(dim)]
     penalties = []
 
-    currentEnergy, penal, penal_tup = main_checker(instance, state)
+    currentEnergy, penal, penal_tup = main_checker(instance, state, penalty_koef)
     currentTemp = initialTemperature
     energy = [currentEnergy]
     best_energy = currentEnergy
     best_state = state
     best_penalty = penal
-    best_pen_tup = penal_tup
-    time = [1]
+    iter = 0
 
-    for iter in range(iterMax):
-        stateCandidate = GenerateStateCandidate(state, currentTemp, Deltas)  # получаем состояние - кандидат
-        candidateEnergy, penal, penal_tup = main_checker(instance, stateCandidate)
+    while (time.time() - start_time) <= time_limit:
+        stateCandidate = GenerateStateCandidate(state)  # получаем состояние - кандидат
+        candidateEnergy, penal, penal_tup = main_checker(instance, stateCandidate, penalty_koef)
         penalties.append(penal)
 
         if candidateEnergy < currentEnergy:
@@ -111,7 +113,6 @@ def sa_main(instance):
                 best_energy = candidateEnergy
                 best_state = stateCandidate
                 best_penalty = penal
-                best_pen_tup = penal_tup
         else:
             probability = GetTransitionProbability(candidateEnergy - currentEnergy, currentTemp)
             if MakeTransit(probability):
@@ -119,12 +120,12 @@ def sa_main(instance):
                 state = stateCandidate
         if not (iter % 100):
             energy.append(best_energy)
-            time.append(time[-1])
 
-        currentTemp = DecreaseTemperature(initialTemperature, iter)  # уменьшаем температуру
-
+        currentTemp = DecreaseTemperature(initialTemperature, iter)
         if currentTemp <= endTemperature:
             break
+        iter += 1
 
-    print('SA Solver has finished, best energy:', best_energy, 'best penalty:', best_penalty)
-    return best_state, best_energy, best_penalty, energy, time
+    print('Done SA. Best solution:', best_energy, 'penalty:', best_penalty)
+    time_values = list(range(len(energy)))
+    return best_state, best_energy, best_penalty, energy, time_values
